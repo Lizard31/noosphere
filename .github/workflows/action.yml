@@ -2,15 +2,22 @@ name: Update daily
 
 on:
   schedule:
-    - cron: "0 17 * * *"
+    - cron: "0 17 * * *"  # Runs daily at 17:00 UTC
   workflow_dispatch:
+
 jobs:
   alter_repo:
     permissions:
       contents: write
     runs-on: ubuntu-latest
+
     steps:
       - uses: actions/checkout@v4
+
+      - name: Set up Git identity
+        run: |
+          git config --global user.name "github-actions"
+          git config --global user.email "github-actions@github.com"
 
       - name: Extract target number of commits from seed.txt
         id: extract_seed
@@ -22,20 +29,20 @@ jobs:
       - name: Fetch commits from GitHub activity
         id: fetch_activity
         env:
-          JUNIOR_TOKEN: ${{ secrets.JUNIOR_TOKEN }}
+          GH_TOKEN: ${{ secrets.JUNIOR_TOKEN }}
         run: |
-          # Get the authenticated user's username
-          echo "Authenticating"
-          gh auth login --with-token <<< "$JUNIOR_TOKEN"
+          TODAY=$(date +%Y-%m-%d)
+
+          echo "Fetching current user via GH_TOKEN..."
           USERNAME=$(gh api user --jq .login)
           echo "Authenticated as $USERNAME"
 
-          TODAY=$(date +%Y-%m-%d)
+          echo "Fetching push events for $TODAY..."
           COMMIT_COUNT=$(gh api "/users/$USERNAME/events" | jq --arg today "$TODAY" '
             map(select(.type == "PushEvent" and .created_at[:10] == $today))
             | map(.payload.commits) | flatten | length
           ')
-
+          
           echo "COMMIT_COUNT=$COMMIT_COUNT" >> $GITHUB_ENV
           echo "Found $COMMIT_COUNT commits today"
 
@@ -44,12 +51,26 @@ jobs:
         env:
           TARGET_COMMITS: ${{ env.TARGET_COMMITS }}
           COMMIT_COUNT: ${{ env.COMMIT_COUNT }}
+        run: |
+          echo "Creating missing commits if needed..."
+          MISSING=$((TARGET_COMMITS - COMMIT_COUNT))
+
+          if [ "$MISSING" -le 0 ]; then
+            echo "No missing commits. Done."
+            exit 0
+          fi
+
+          for ((i = 0; i < MISSING; i++)); do
+            random_string=$(head /dev/urandom | tr -dc 'a-zA-Z0-9' | head -c 5)
+            new_line="[${random_string}] All work and no play make Jack a dull boy!"
+            echo "$new_line" >> book.txt
+            git add book.txt
+            git commit -m "$new_line"
+          done
+
+      - name: Push commits
+        env:
           JUNIOR_TOKEN: ${{ secrets.JUNIOR_TOKEN }}
         run: |
-          for ((i = $COMMIT_COUNT; i < $TARGET_COMMITS; i++)); do
-            random_string=$(head /dev/urandom | tr -dc 'a-zA-Z0-9' | head -c 5)
-            new_line="[${random_string}] All work and no play make jack a dull boy!"
-            echo "$new_line" >> book.txt
-            git add book.txt && git commit -m "$new_line"
-          done
+          echo "Pushing commits..."
           git push https://x-access-token:$JUNIOR_TOKEN@github.com/${{ github.repository }}.git
