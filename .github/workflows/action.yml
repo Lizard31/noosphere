@@ -19,8 +19,8 @@ jobs:
 
       - name: Set up Git identity
         run: |
-          git config --global user.name "github-actions"
-          git config --global user.email "github-actions@github.com"
+          git config --global user.name "Lizard31"
+          git config --global user.email "bordianutudor@gmail.com"
 
       - name: Extract target number of commits from seed.txt
         id: extract_seed
