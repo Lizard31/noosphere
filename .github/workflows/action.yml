@@ -65,7 +65,7 @@ jobs:
 
           for ((i = 0; i < MISSING; i++)); do
             random_string=$(head /dev/urandom | tr -dc 'a-zA-Z0-9' | head -c 5)
-            new_line="[${random_string}] All work and no play make Jack a dull boy!"
+            new_line="[${random_string}] Praise the Omnissiah!"
             echo "$new_line" >> book.txt
             git add book.txt
             git commit -m "$new_line"
