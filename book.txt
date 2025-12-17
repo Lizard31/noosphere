@@ -2610,3 +2610,4 @@
 [bLect] Praise the Omnissiah!
 [DCt99] Praise the Omnissiah!
 [PSFoL] Praise the Omnissiah!
+[alas6] Praise the Omnissiah!
